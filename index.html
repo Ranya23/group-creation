@@ -1,0 +1,707 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Users, UserPlus, Shield, Globe, Search, Plus, Trash2, Edit, 
+  Check, X, Download, Mail, Moon, Sun, Lock, LogOut, LayoutDashboard, ChevronRight, ChevronLeft, FileText, File, QrCode
+} from 'lucide-react';
+
+// ==========================================
+// ⚙️ CONFIGURATION (PASTE YOUR URLs HERE)
+// ==========================================
+const APP_CONFIG = {
+  // 1. Paste your Google Apps Script Web App URL here later to connect the real database
+  GAS_URL: 'https://script.google.com/macros/s/AKfycbyR_jxXDag-y5SYGpYBIcoS-28h9JMxclJId7Ob-Zre4K4B_NqIIJU9z5KMIwmTx-v7Kw/exec', 
+  // 2. Paste your GitHub Pages URL here (This generates the QR Code automatically!)
+  GITHUB_URL: 'https://your-username.github.io/your-repo-name/'
+};
+
+// --- TRANSLATIONS (Kurdish default, English fallback) ---
+const translations = {
+  ku: {
+    dir: 'rtl',
+    appTitle: 'سیستەمی تۆمارکردن',
+    home: 'سەرەتا',
+    groups: 'گرووپەکان',
+    adminPanel: 'بەڕێوەبەرایەتی',
+    join: 'چوونەژوورەوەی گرووپ',
+    full: 'پڕبووە',
+    seatsLeft: 'شوێنی بەتاڵ',
+    maxParticipants: 'زۆرترین بەشداربوو',
+    name: 'ناوی تەواو',
+    email: 'ئیمەیڵی کارا',
+    phone: 'ژمارەی مۆبایل',
+    spec: 'پسپۆڕی',
+    org: 'شوێنی کار / زانکۆ',
+    age: 'تەمەن',
+    register: 'زیادکردنی ناو',
+    update: 'نوێکردنەوەی ناو',
+    cancel: 'گەڕانەوە',
+    adminLogin: 'چوونەژوورەوەی بەڕێوەبەر',
+    password: 'وشەی تێپەڕ (Password)',
+    login: 'چوونەژوورەوە',
+    createGroup: 'دروستکردنی گرووپی نوێ',
+    groupName: 'ناوی گرووپ',
+    color: 'ڕەنگی گرووپ',
+    reqFields: 'زانیارییە داواکراوەکان',
+    delete: 'سڕینەوە',
+    edit: 'دەستکاری',
+    success: 'کردارەکە سەرکەوتووبوو!',
+    error: 'هەڵەیەک ڕوویدا!',
+    duplicate: 'ئەم زانیارییە پێشتر تۆمارکراوە!',
+    leaderView: 'پەنجەرەی سەرپەرشتیار',
+    approve: 'پەسەندکردن',
+    reject: 'ڕەتکردنەوە',
+    pending: 'چاوەڕوانکراو',
+    approved: 'پەسەندکراو',
+    leader: 'سەرۆکی گروپ',
+    search: 'گەڕان...',
+    exportPdf: 'دابەزاندن PDF',
+    exportWord: 'دابەزاندن Word',
+    exportAllPdf: 'دابەزاندنی هەموو گرووپەکان (PDF)',
+    exportAllWord: 'دابەزاندنی هەموو گرووپەکان (Word)',
+    reset: 'سڕینەوەی هەموو داتاکان',
+    noGroups: 'هیچ گرووپێک بوونی نییە',
+    youAreLeader: 'تۆ سەرۆکی ئەم گروپەی',
+    actions: 'کردارەکان',
+    status: 'دۆخ',
+    theme: 'دۆخی تاریک/ڕووناک',
+    viewParticipants: 'بینینی بەشداربووان',
+    backToGroups: 'گەڕانەوە بۆ گرووپەکان',
+    showQR: 'کۆدی QR'
+  },
+  en: {
+    dir: 'ltr',
+    appTitle: 'Registration System',
+    home: 'Home',
+    groups: 'Groups',
+    adminPanel: 'Admin Panel',
+    join: 'Enter Group',
+    full: 'Full',
+    seatsLeft: 'Seats Left',
+    maxParticipants: 'Max Participants',
+    name: 'Full Name',
+    email: 'Email Address',
+    phone: 'Phone Number',
+    spec: 'Specialization',
+    org: 'Organization / University',
+    age: 'Age',
+    register: 'Add Name',
+    update: 'Update Name',
+    cancel: 'Cancel',
+    adminLogin: 'Admin Login',
+    password: 'Password',
+    login: 'Login',
+    createGroup: 'Create New Group',
+    groupName: 'Group Name',
+    color: 'Group Color',
+    reqFields: 'Required Information',
+    delete: 'Delete',
+    edit: 'Edit',
+    success: 'Action Successful!',
+    error: 'An error occurred!',
+    duplicate: 'This information is already registered!',
+    leaderView: 'Leader Dashboard',
+    approve: 'Approve',
+    reject: 'Reject',
+    pending: 'Pending',
+    approved: 'Approved',
+    leader: 'Group Leader',
+    search: 'Search...',
+    exportPdf: 'Export PDF',
+    exportWord: 'Export Word',
+    exportAllPdf: 'Export All Groups (PDF)',
+    exportAllWord: 'Export All Groups (Word)',
+    reset: 'Reset All Data',
+    noGroups: 'No groups available',
+    youAreLeader: 'You are the leader of this group',
+    actions: 'Actions',
+    status: 'Status',
+    theme: 'Dark/Light Mode',
+    viewParticipants: 'View Participants',
+    backToGroups: 'Back to Groups',
+    showQR: 'QR Code'
+  }
+};
+
+// 15 Premium Color Gradients
+const groupColors = [
+  { label: 'Emerald / Teal', value: 'from-emerald-500 to-teal-700' },
+  { label: 'Blue / Indigo', value: 'from-blue-500 to-indigo-700' },
+  { label: 'Amber / Orange', value: 'from-amber-500 to-orange-700' },
+  { label: 'Rose / Pink', value: 'from-rose-500 to-pink-700' },
+  { label: 'Purple / Fuchsia', value: 'from-purple-500 to-fuchsia-700' },
+  { label: 'Cyan / Blue', value: 'from-cyan-400 to-blue-600' },
+  { label: 'Yellow / Red', value: 'from-yellow-400 to-red-600' },
+  { label: 'Slate / Gray', value: 'from-slate-600 to-gray-800' },
+  { label: 'Lime / Green', value: 'from-lime-400 to-green-600' },
+  { label: 'Pink / Rose', value: 'from-pink-400 to-rose-600' },
+  { label: 'Indigo / Purple', value: 'from-indigo-400 to-purple-600' },
+  { label: 'Orange / Red', value: 'from-orange-400 to-red-600' },
+  { label: 'Teal / Emerald', value: 'from-teal-400 to-emerald-600' },
+  { label: 'Fuchsia / Pink', value: 'from-fuchsia-500 to-pink-600' },
+  { label: 'Sky / Indigo', value: 'from-sky-400 to-indigo-600' }
+];
+
+const availableFields = ['email', 'phone', 'spec', 'org', 'age'];
+
+// --- MOCK INITIAL DATA ---
+const initialGroups = [
+  { id: 'g1', name: 'GIS & Remote Sensing', color: 'from-emerald-500 to-teal-700', max: 10, current: 1, fields: ['phone', 'spec'] },
+  { id: 'g2', name: 'Python Automation', color: 'from-blue-500 to-indigo-700', max: 5, current: 0, fields: ['phone', 'org'] },
+];
+
+const initialParticipants = [
+  { id: 'P1001', groupId: 'g1', data: { name: 'نوزاد رسوڵ محمد', phone: '07501234567', spec: 'GIS' }, isLeader: true, status: 'approved', date: new Date().toISOString() }
+];
+
+export default function App() {
+  const [lang, setLang] = useState('ku');
+  const [darkMode, setDarkMode] = useState(true);
+  const [view, setView] = useState('dashboard');
+  const [groups, setGroups] = useState(initialGroups);
+  const [participants, setParticipants] = useState(initialParticipants);
+  const [selectedGroup, setSelectedGroup] = useState(null);
+  const [adminLoggedIn, setAdminLoggedIn] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [showQRModal, setShowQRModal] = useState(false);
+
+  const t = translations[lang];
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // --- EXPORT FUNCTIONS ---
+  const generatePdfHtml = (groupsToExport) => {
+    let html = `<html dir="${t.dir}"><head><meta charset="utf-8">
+    <title>${t.appTitle}</title>
+    <style>
+      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #1f2937; }
+      h1 { color: #4f46e5; border-bottom: 3px solid #e5e7eb; padding-bottom: 10px; margin-top: 30px; }
+      p { color: #6b7280; font-size: 14px; margin-top: 0; }
+      table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 40px; }
+      th, td { border: 1px solid #e5e7eb; padding: 10px 12px; text-align: ${t.dir==='rtl'?'right':'left'}; font-size: 14px; }
+      th { background-color: #4f46e5; color: white; font-weight: 600; }
+      tr:nth-child(even) { background-color: #f9fafb; }
+      .leader { font-weight: bold; color: #b45309; }
+      .page-break { page-break-after: always; }
+    </style>
+    </head><body>`;
+    
+    groupsToExport.forEach((group, index) => {
+      const groupParticipants = participants.filter(p => p.groupId === group.id);
+      html += `<h1>${group.name}</h1><p>${t.maxParticipants}: ${group.max} | Total: ${groupParticipants.length}</p>`;
+      html += `<table><tr><th>#</th><th>${t.name}</th>`;
+      group.fields.forEach(f => { html += `<th>${t[f]}</th>`; });
+      html += `<th>${t.status}</th></tr>`;
+      
+      groupParticipants.forEach((p, i) => {
+        html += `<tr><td>${i + 1}</td><td><strong>${p.data.name}</strong></td>`;
+        group.fields.forEach(f => { html += `<td>${p.data[f] || '-'}</td>`; });
+        const statusText = p.isLeader ? `👑 ${t.leader}` : t[p.status];
+        html += `<td class="${p.isLeader ? 'leader' : ''}">${statusText}</td></tr>`;
+      });
+      html += `</table>`;
+      if (index < groupsToExport.length - 1) html += `<div class="page-break"></div>`;
+    });
+    
+    html += `</body></html>`;
+    return html;
+  };
+
+  const exportToPdf = (groupsToExport) => {
+    const printWindow = window.open('', '', 'height=800,width=1000');
+    printWindow.document.write(generatePdfHtml(groupsToExport));
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+  };
+
+  const exportToWord = (groupsToExport) => {
+    let html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40' dir="${t.dir}">
+    <head><meta charset="utf-8"><title>${t.appTitle}</title></head>
+    <body style="font-family: Arial, sans-serif;">`;
+    
+    groupsToExport.forEach(group => {
+      const groupParticipants = participants.filter(p => p.groupId === group.id);
+      html += `<h1 style="color: #4f46e5;">${group.name}</h1>`;
+      html += `<table border="1" style="width: 100%; border-collapse: collapse; text-align: ${t.dir==='rtl'?'right':'left'}; margin-bottom: 30px;">`;
+      html += `<tr style="background-color: #4f46e5; color: white;"><th style="padding: 8px;">#</th><th style="padding: 8px;">${t.name}</th>`;
+      group.fields.forEach(f => { html += `<th style="padding: 8px;">${t[f]}</th>`; });
+      html += `<th style="padding: 8px;">${t.status}</th></tr>`;
+      
+      groupParticipants.forEach((p, i) => {
+        html += `<tr><td style="padding: 8px;">${i + 1}</td><td style="padding: 8px;"><b>${p.data.name}</b></td>`;
+        group.fields.forEach(f => { html += `<td style="padding: 8px;">${p.data[f] || ''}</td>`; });
+        html += `<td style="padding: 8px; color: ${p.isLeader?'#d97706':'#333'}; font-weight: ${p.isLeader?'bold':'normal'}">${p.isLeader ? t.leader : t[p.status]}</td></tr>`;
+      });
+      html += `</table><br clear="all" style="page-break-before:always" />`;
+    });
+    
+    html += `</body></html>`;
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Registration_Data.doc`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const Toast = () => {
+    if (!toast) return null;
+    return (
+      <div className={`fixed bottom-5 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 text-white font-medium flex items-center gap-2 transition-all duration-300 animate-bounce ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+        {toast.type === 'success' ? <Check size={20} /> : <X size={20} />}
+        {toast.message}
+      </div>
+    );
+  };
+
+  const Navbar = () => (
+    <nav className="w-full backdrop-blur-xl bg-white/10 dark:bg-black/20 border-b border-gray-200/20 dark:border-white/10 sticky top-0 z-40 transition-colors duration-300">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('dashboard')}>
+            <div className="p-2 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-xl shadow-lg">
+              <Users className="text-white w-6 h-6" />
+            </div>
+            <span className="font-bold text-xl tracking-wide text-gray-800 dark:text-white hidden sm:block">
+              {t.appTitle}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-4">
+            <button 
+              onClick={() => setShowQRModal(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800 transition text-sm font-bold"
+            >
+              <QrCode size={18} />
+              <span className="hidden sm:inline">{t.showQR}</span>
+            </button>
+            <button 
+              onClick={() => setLang(lang === 'ku' ? 'en' : 'ku')}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition text-sm font-medium text-gray-700 dark:text-gray-200"
+            >
+              <Globe size={16} />
+              {lang === 'ku' ? 'EN' : 'کوردی'}
+            </button>
+            <button 
+              onClick={() => setDarkMode(!darkMode)}
+              className="p-2 rounded-lg bg-gray-100/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition text-gray-700 dark:text-gray-200"
+            >
+              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+            <button 
+              onClick={() => view === 'adminPanel' ? setView('dashboard') : setView('adminLogin')}
+              className="p-2 rounded-lg text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition ml-2 sm:ml-4 opacity-50 hover:opacity-100"
+            >
+              {adminLoggedIn && view === 'adminPanel' ? <LogOut size={18} /> : <Shield size={18} />}
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+
+  const QRModal = () => {
+    if (!showQRModal) return null;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(APP_CONFIG.GITHUB_URL)}`;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowQRModal(false)}>
+        <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-2xl text-center max-w-sm w-full border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">QR Code</h3>
+          <div className="bg-white p-4 rounded-2xl inline-block shadow-inner mb-6">
+            <img src={qrUrl} alt="QR Code" className="w-48 h-48 mx-auto" />
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 break-all">{APP_CONFIG.GITHUB_URL}</p>
+          <button onClick={() => setShowQRModal(false)} className="w-full py-3 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-white font-bold rounded-xl hover:bg-gray-300 dark:hover:bg-gray-700 transition">
+            {t.cancel}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const Dashboard = () => (
+    <div className="space-y-8 animate-fade-in">
+      <div className="text-center space-y-4 py-8">
+        <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">
+          {t.groups}
+        </h1>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {groups.length === 0 && (
+          <div className="col-span-full text-center py-12 text-gray-500">{t.noGroups}</div>
+        )}
+        {groups.map(group => {
+          const isFull = group.current >= group.max;
+          const progress = (group.current / group.max) * 100;
+          
+          return (
+            <div 
+              key={group.id} 
+              className={`relative overflow-hidden rounded-3xl backdrop-blur-xl bg-white/40 dark:bg-gray-900/40 border border-gray-200 dark:border-white/10 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col cursor-pointer`}
+              onClick={() => {
+                setSelectedGroup(group);
+                setView('groupDetails');
+              }}
+            >
+              <div className={`h-3 w-full bg-gradient-to-r ${group.color}`}></div>
+              <div className="p-6 flex-1 flex flex-col">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-2xl font-bold text-gray-800 dark:text-white">{group.name}</h3>
+                  <div className={`p-2 rounded-lg bg-gradient-to-br ${group.color} text-white shadow-md`}>
+                    <Users size={24} />
+                  </div>
+                </div>
+                
+                <div className="space-y-4 flex-1">
+                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                    <span>{t.seatsLeft}: <strong className="text-gray-900 dark:text-white">{group.max - group.current}</strong></span>
+                    <span>{t.maxParticipants}: {group.max}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                    <div className={`h-2.5 rounded-full bg-gradient-to-r ${group.color} transition-all duration-1000 ease-out`} style={{ width: `${progress}%` }}></div>
+                  </div>
+                </div>
+
+                <div className={`mt-6 w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-md bg-white/50 dark:bg-black/30 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800`}>
+                  <Users size={20} /> {t.viewParticipants}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // Unified view for seeing the table AND registering/editing
+  const GroupDetailsPublic = () => {
+    const groupParticipants = participants.filter(p => p.groupId === selectedGroup?.id);
+    
+    // Form State
+    const [editingId, setEditingId] = useState(null);
+    const initialFormState = { name: '' };
+    selectedGroup?.fields.forEach(f => initialFormState[f] = '');
+    const [formData, setFormData] = useState(initialFormState);
+
+    const isFull = selectedGroup.current >= selectedGroup.max;
+
+    const handleEditClick = (p) => {
+      setEditingId(p.id);
+      setFormData(p.data);
+      // Scroll to form
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    };
+
+    const handleCancelEdit = () => {
+      setEditingId(null);
+      setFormData(initialFormState);
+    };
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      
+      // Update existing
+      if (editingId) {
+        setParticipants(participants.map(p => p.id === editingId ? { ...p, data: formData } : p));
+        showToast(t.success, 'success');
+        handleCancelEdit();
+        return;
+      }
+
+      // Add new
+      if (isFull) {
+        showToast(t.full, 'error');
+        return;
+      }
+
+      const isFirst = groupParticipants.length === 0;
+      const newParticipant = {
+        id: 'P' + Math.floor(1000 + Math.random() * 9000),
+        groupId: selectedGroup.id,
+        data: formData,
+        isLeader: isFirst,
+        status: isFirst ? 'approved' : 'pending',
+        date: new Date().toISOString()
+      };
+
+      setParticipants([...participants, newParticipant]);
+      setGroups(groups.map(g => g.id === selectedGroup.id ? { ...g, current: g.current + 1 } : g));
+      setFormData(initialFormState);
+      showToast(t.success, 'success');
+    };
+
+    return (
+      <div className="space-y-8 animate-fade-in">
+        {/* Header & Export Controls */}
+        <div className="flex flex-wrap gap-4 justify-between items-center bg-white/40 dark:bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-lg">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setView('dashboard')} className="p-2 bg-gray-200 dark:bg-gray-800 rounded-full hover:bg-gray-300 transition">
+              {lang === 'ku' ? <ChevronRight size={20} className="dark:text-white" /> : <ChevronLeft size={20} className="dark:text-white" />}
+            </button>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{selectedGroup?.name}</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{groupParticipants.length} / {selectedGroup?.max} Participants</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => exportToPdf([selectedGroup])} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow transition">
+              <FileText size={18} /> <span className="hidden sm:inline">{t.exportPdf}</span>
+            </button>
+            <button onClick={() => exportToWord([selectedGroup])} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow transition">
+              <File size={18} /> <span className="hidden sm:inline">{t.exportWord}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Public Table */}
+        <div className="backdrop-blur-xl bg-white/40 dark:bg-gray-900/40 border border-white/20 p-6 rounded-3xl shadow-xl overflow-x-auto">
+          <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">
+            <thead className="bg-gray-100/80 dark:bg-gray-800/80 text-gray-900 dark:text-white">
+              <tr>
+                <th className="p-4 font-semibold rounded-tl-lg rounded-bl-lg w-16">#</th>
+                <th className="p-4 font-semibold">{t.name}</th>
+                {selectedGroup?.fields.map(f => (
+                  <th key={f} className="p-4 font-semibold">{t[f]}</th>
+                ))}
+                <th className="p-4 font-semibold">{t.status}</th>
+                <th className="p-4 font-semibold rounded-tr-lg rounded-br-lg">{t.actions}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {groupParticipants.map((p, index) => (
+                <tr key={p.id} className={`border-b border-gray-200/50 dark:border-gray-800/50 hover:bg-white/50 dark:hover:bg-white/5 transition ${editingId === p.id ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}`}>
+                  <td className="p-4">{index + 1}</td>
+                  <td className="p-4 font-bold text-gray-900 dark:text-white">{p.data.name}</td>
+                  {selectedGroup?.fields.map(f => (
+                    <td key={f} className="p-4">{p.data[f] || '-'}</td>
+                  ))}
+                  <td className="p-4">
+                    {p.isLeader ? (
+                      <span className="px-3 py-1 bg-amber-100 text-amber-700 font-bold rounded-lg text-xs flex items-center w-max gap-1">👑 {t.leader}</span>
+                    ) : (
+                      <span className={`px-2 py-1 rounded-lg text-xs font-bold w-max ${p.status === 'approved' ? 'bg-green-100 text-green-700' : p.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{t[p.status]}</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    <button onClick={() => handleEditClick(p)} className="p-2 text-indigo-500 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-lg transition" title={t.edit}>
+                      <Edit size={18} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {groupParticipants.length === 0 && (
+                <tr><td colSpan={selectedGroup.fields.length + 4} className="p-8 text-center text-gray-500">No participants yet. Be the first!</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Add / Edit Form */}
+        {(!isFull || editingId) && (
+          <div className="max-w-xl mx-auto backdrop-blur-2xl bg-white/50 dark:bg-gray-900/50 border border-gray-200 dark:border-white/10 p-8 rounded-3xl shadow-2xl">
+            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 text-center">
+              {editingId ? t.update : t.register}
+            </h3>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t.name}</label>
+                <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-black/30 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white transition" />
+              </div>
+
+              {selectedGroup?.fields.map(field => (
+                <div key={field}>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{t[field]}</label>
+                  <input required type={field === 'email' ? 'email' : field === 'age' ? 'number' : 'text'} 
+                    value={formData[field]} onChange={e => setFormData({...formData, [field]: e.target.value})} 
+                    className="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-black/30 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white transition" />
+                </div>
+              ))}
+              
+              <div className="flex gap-4 pt-2">
+                <button type="submit" className={`flex-1 py-3.5 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95 bg-gradient-to-r ${selectedGroup?.color || 'from-indigo-500 to-purple-600'}`}>
+                  {editingId ? t.update : t.register}
+                </button>
+                {editingId && (
+                  <button type="button" onClick={handleCancelEdit} className="flex-1 py-3.5 rounded-xl font-bold text-gray-700 dark:text-gray-200 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 transition-all">
+                    {t.cancel}
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const AdminLogin = () => {
+    const [pwd, setPwd] = useState('');
+    const handleLogin = (e) => {
+      e.preventDefault();
+      if (pwd === 'admin123' || pwd === 'nawzad123') {
+        setAdminLoggedIn(true);
+        setView('adminPanel');
+        showToast(t.success, 'success');
+      } else {
+        showToast(t.error, 'error');
+      }
+    };
+    return (
+      <div className="max-w-sm mx-auto mt-20 animate-fade-in">
+        <div className="backdrop-blur-xl bg-white/30 dark:bg-black/30 border border-white/20 p-8 rounded-3xl shadow-2xl text-center">
+          <div className="mx-auto bg-indigo-500/20 w-16 h-16 rounded-full flex items-center justify-center mb-6">
+            <Lock className="text-indigo-600 dark:text-indigo-400 w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">{t.adminLogin}</h2>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input required type="password" placeholder={t.password} value={pwd} onChange={e => setPwd(e.target.value)} className="w-full px-4 py-3 text-center rounded-xl bg-white/60 dark:bg-black/50 border border-gray-300 dark:border-gray-700 outline-none focus:border-indigo-500 dark:text-white" />
+            <button type="submit" className="w-full py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-lg">
+              {t.login}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  };
+
+  const AdminPanel = () => {
+    const [newGroup, setNewGroup] = useState({ name: '', color: groupColors[0].value, max: 10, fields: [] });
+
+    const toggleField = (field) => {
+      const isSelected = newGroup.fields.includes(field);
+      setNewGroup({
+        ...newGroup,
+        fields: isSelected ? newGroup.fields.filter(f => f !== field) : [...newGroup.fields, field]
+      });
+    };
+
+    const handleCreateGroup = (e) => {
+      e.preventDefault();
+      const g = { ...newGroup, id: 'g' + Date.now(), current: 0 };
+      setGroups([...groups, g]);
+      setNewGroup({ name: '', color: groupColors[0].value, max: 10, fields: [] });
+      showToast(t.success, 'success');
+    };
+
+    const handleDeleteGroup = (id) => {
+      setGroups(groups.filter(g => g.id !== id));
+      setParticipants(participants.filter(p => p.groupId !== id));
+      showToast(t.success, 'success');
+    };
+
+    return (
+      <div className="space-y-8 animate-fade-in">
+        <div className="flex flex-wrap justify-between items-center bg-white/40 dark:bg-black/40 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-lg gap-4">
+          <h2 className="text-3xl font-bold text-gray-800 dark:text-white flex items-center gap-3">
+            <LayoutDashboard /> {t.adminPanel}
+          </h2>
+          <div className="flex gap-2">
+             <button onClick={() => exportToPdf(groups)} className="flex items-center gap-2 px-4 py-2 bg-red-600/10 text-red-600 dark:text-red-400 hover:bg-red-600/20 rounded-xl transition font-bold text-sm border border-red-600/20">
+                <FileText size={18} /> <span className="hidden sm:inline">{t.exportAllPdf}</span>
+             </button>
+             <button onClick={() => exportToWord(groups)} className="flex items-center gap-2 px-4 py-2 bg-blue-600/10 text-blue-600 dark:text-blue-400 hover:bg-blue-600/20 rounded-xl transition font-bold text-sm border border-blue-600/20">
+                <File size={18} /> <span className="hidden sm:inline">{t.exportAllWord}</span>
+             </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Create Group Form */}
+          <div className="backdrop-blur-xl bg-white/40 dark:bg-gray-900/40 border border-white/20 p-6 rounded-3xl shadow-xl h-fit">
+            <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6">{t.createGroup}</h3>
+            <form onSubmit={handleCreateGroup} className="space-y-5">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t.groupName}</label>
+                <input required value={newGroup.name} onChange={e=>setNewGroup({...newGroup, name:e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-black/40 border border-gray-300 dark:border-gray-700 outline-none dark:text-white" />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t.maxParticipants}</label>
+                <input required type="number" min="1" value={newGroup.max} onChange={e=>setNewGroup({...newGroup, max: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-black/40 border border-gray-300 dark:border-gray-700 outline-none dark:text-white" />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{t.color}</label>
+                <select value={newGroup.color} onChange={e=>setNewGroup({...newGroup, color:e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white/70 dark:bg-black/40 border border-gray-300 dark:border-gray-700 outline-none dark:text-white appearance-none">
+                  {groupColors.map((color, idx) => (
+                    <option key={idx} value={color.value}>{color.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Dynamic Field Selectors */}
+              <div className="p-4 bg-white/50 dark:bg-black/30 rounded-xl border border-gray-200 dark:border-gray-700">
+                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-3">{t.reqFields}</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 opacity-70">
+                    <input type="checkbox" checked disabled className="rounded text-indigo-600" />
+                    {t.name} (ئەمە هەمیشە داواکراوە)
+                  </label>
+                  {availableFields.map(field => (
+                    <label key={field} className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                      <input type="checkbox" checked={newGroup.fields.includes(field)} onChange={() => toggleField(field)} className="rounded text-indigo-600 cursor-pointer" />
+                      {t[field]}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <button type="submit" className="w-full py-3.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition shadow-md flex justify-center gap-2 mt-4">
+                <Plus /> {t.createGroup}
+              </button>
+            </form>
+          </div>
+
+          {/* Group Management List */}
+          <div className="lg:col-span-2 space-y-4">
+            {groups.map(group => (
+              <div key={group.id} className="backdrop-blur-md bg-white/60 dark:bg-gray-900/60 border border-white/30 dark:border-gray-700 p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-md hover:shadow-lg transition gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${group.color} flex items-center justify-center text-white font-bold shadow-md shrink-0`}>
+                    {group.current}/{group.max}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-gray-800 dark:text-white text-lg">{group.name}</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {group.fields.length === 0 ? t.name : `${t.name}, ${group.fields.map(f => t[f]).join(', ')}`}
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                  <button onClick={() => { setSelectedGroup(group); setView('groupDetails'); }} className="flex-1 sm:flex-none px-4 py-2 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/40 dark:hover:bg-indigo-800 text-indigo-700 dark:text-indigo-300 font-medium rounded-xl transition text-sm whitespace-nowrap">
+                    {t.viewParticipants}
+                  </button>
+                  <button onClick={() => handleDeleteGroup(group.id)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-xl transition">
+                    <Trash2 size={20} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className={`min-h-screen transition-colors duration-500 font-sans ${darkMode ? 'dark' : ''}`} dir={t.dir}>
+      <div className="min-h-screen bg-[#f3f4f6] dark:bg-[#0f172a] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] dark:bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] relative">
+        <Navbar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+          {view === 'dashboard' && <Dashboard />}
+          {view === 'groupDetails' && <GroupDetailsPublic />}
+          {view === 'adminLogin' && <AdminLogin />}
+          {view === 'adminPanel' && adminLoggedIn && <AdminPanel />}
+        </main>
+        <QRModal />
+        <Toast />
+      </div>
+    </div>
+  );
+}
