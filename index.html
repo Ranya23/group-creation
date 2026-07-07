@@ -1,613 +1,582 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Users, UserPlus, Shield, Globe, Search, Plus, Trash2, Edit, 
-  Check, X, Download, Moon, Sun, Lock, LogOut, LayoutDashboard, 
-  ChevronRight, ChevronLeft, FileText, File, QrCode
-} from 'lucide-react';
-
-// ==========================================
-// CONFIGURATION (Paste your URLs here)
-// ==========================================
-const APP_CONFIG = {
-  GITHUB_URL: "https://ranya23.github.io/group-creation/",
-  GAS_URL: "https://script.google.com/macros/s/AKfycbyR_jxXDag-y5SYGpYBIcoS-28h9JMxclJId7Ob-Zre4K4B_NqIIJU9z5KMIwmTx-v7Kw/exec"
-};
-
-// --- TRANSLATIONS (Kurdish default, English fallback) ---
-const translations = {
-  ku: {
-    dir: 'rtl',
-    appTitle: 'سیستەمی تۆمارکردن',
-    home: 'سەرەتا',
-    groups: 'گرووپەکان',
-    adminPanel: 'بەڕێوەبەرایەتی',
-    join: 'چوونەژوورەوەی گرووپ',
-    full: 'پڕبووە',
-    seatsLeft: 'شوێنی بەتاڵ',
-    maxParticipants: 'زۆرترین بەشداربوو',
-    name: 'ناوی تەواو',
-    email: 'ئیمەیڵ',
-    phone: 'ژمارەی مۆبایل',
-    spec: 'پسپۆڕی',
-    org: 'شوێنی کار / زانکۆ',
-    age: 'تەمەن',
-    register: 'تۆمارکردن',
-    update: 'نوێکردنەوەی زانیاری',
-    cancel: 'گەڕانەوە',
-    adminLogin: 'چوونەژوورەوەی بەڕێوەبەر',
-    password: 'وشەی تێپەڕ (Password)',
-    login: 'چوونەژوورەوە',
-    createGroup: 'دروستکردنی گرووپی نوێ',
-    groupName: 'ناوی گرووپ',
-    color: 'ڕەنگی گرووپ',
-    reqFields: 'زانیارییە داواکراوەکان',
-    delete: 'سڕینەوە',
-    edit: 'دەستکاری',
-    success: 'کردارەکە سەرکەوتووبوو!',
-    error: 'هەڵەیەک ڕوویدا!',
-    duplicate: 'ئەم زانیارییە پێشتر تۆمارکراوە!',
-    leader: 'سەرۆکی گروپ',
-    search: 'گەڕان بەدوای بەشداربووان...',
-    exportPdf: 'دابەزاندن PDF',
-    exportWord: 'دابەزاندن Word',
-    exportAllPdf: 'دابەزاندنی هەمووی PDF',
-    exportAllWord: 'دابەزاندنی هەمووی Word',
-    noGroups: 'هیچ گرووپێک بوونی نییە',
-    status: 'دۆخ',
-    theme: 'دۆخی تاریک/ڕووناک',
-    viewParticipants: 'بینین و تۆمارکردن',
-    addParticipant: 'تۆمارکردنی ناوی نوێ',
-    editParticipant: 'دەستکاریکردنی زانیاری',
-    loading: 'چاوەڕوان بە داتا دەهێنرێت...',
-    qrCode: 'کۆدی QR'
-  },
-  en: {
-    dir: 'ltr',
-    appTitle: 'Registration System',
-    home: 'Home',
-    groups: 'Groups',
-    adminPanel: 'Admin Panel',
-    join: 'Enter Group',
-    full: 'Full',
-    seatsLeft: 'Seats Left',
-    maxParticipants: 'Max Participants',
-    name: 'Full Name',
-    email: 'Email Address',
-    phone: 'Phone Number',
-    spec: 'Specialization',
-    org: 'Organization / University',
-    age: 'Age',
-    register: 'Register Name',
-    update: 'Update Info',
-    cancel: 'Cancel',
-    adminLogin: 'Admin Login',
-    password: 'Password',
-    login: 'Login',
-    createGroup: 'Create New Group',
-    groupName: 'Group Name',
-    color: 'Group Color',
-    reqFields: 'Required Information',
-    delete: 'Delete',
-    edit: 'Edit',
-    success: 'Action Successful!',
-    error: 'An error occurred!',
-    duplicate: 'This information is already registered!',
-    leader: 'Group Leader',
-    search: 'Search participants...',
-    exportPdf: 'Export PDF',
-    exportWord: 'Export Word',
-    exportAllPdf: 'Export All PDF',
-    exportAllWord: 'Export All Word',
-    noGroups: 'No groups available',
-    status: 'Status',
-    theme: 'Dark/Light Mode',
-    viewParticipants: 'View & Register',
-    addParticipant: 'Register New Name',
-    editParticipant: 'Edit Information',
-    loading: 'Loading data...',
-    qrCode: 'QR Code'
-  }
-};
-
-const groupColors = [
-  { label: 'Emerald / Teal', value: 'from-emerald-500 to-teal-700' },
-  { label: 'Blue / Indigo', value: 'from-blue-500 to-indigo-700' },
-  { label: 'Amber / Orange', value: 'from-amber-500 to-orange-700' },
-  { label: 'Rose / Pink', value: 'from-rose-500 to-pink-700' },
-  { label: 'Purple / Fuchsia', value: 'from-purple-500 to-fuchsia-700' },
-  { label: 'Cyan / Blue', value: 'from-cyan-400 to-blue-600' },
-  { label: 'Yellow / Red', value: 'from-yellow-400 to-red-600' },
-  { label: 'Slate / Gray', value: 'from-slate-600 to-gray-800' },
-  { label: 'Lime / Green', value: 'from-lime-400 to-green-600' },
-  { label: 'Pink / Rose', value: 'from-pink-400 to-rose-600' },
-  { label: 'Indigo / Purple', value: 'from-indigo-400 to-purple-600' },
-  { label: 'Orange / Red', value: 'from-orange-400 to-red-600' },
-  { label: 'Teal / Emerald', value: 'from-teal-400 to-emerald-600' },
-  { label: 'Fuchsia / Pink', value: 'from-fuchsia-500 to-pink-600' },
-  { label: 'Sky / Indigo', value: 'from-sky-400 to-indigo-600' }
-];
-
-const availableFields = ['phone', 'email', 'spec', 'org', 'age'];
-
-export default function App() {
-  const [lang, setLang] = useState('ku');
-  const [darkMode, setDarkMode] = useState(true);
-  const [view, setView] = useState('dashboard');
-  const [groups, setGroups] = useState([]);
-  const [participants, setParticipants] = useState([]);
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [adminLoggedIn, setAdminLoggedIn] = useState(false);
-  const [toast, setToast] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [showQR, setShowQR] = useState(false);
-
-  const t = translations[lang];
-
-  // --- GAS API INTEGRATION ---
-  const fetchGAS = async (action, payload = {}) => {
-    try {
-      setLoading(true);
-      const response = await fetch(APP_CONFIG.GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action, ...payload })
-      });
-      const data = await response.json();
-      setLoading(false);
-      return data;
-    } catch (err) {
-      console.error(err);
-      setLoading(false);
-      showToast(t.error, 'error');
-      return null;
-    }
-  };
-
-  const loadData = async () => {
-    const data = await fetchGAS('init');
-    if (data) {
-      setGroups(data.groups || []);
-      setParticipants(data.participants || []);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  // --- EXPORT FUNCTIONS ---
-  const generateHTMLTable = (group, groupParticipants) => {
-    let html = `<h2 style="color: #4f46e5; border-bottom: 2px solid #eee; padding-bottom: 10px;">${group.name}</h2>`;
-    html += `<table border="1" style="width: 100%; border-collapse: collapse; text-align: ${t.dir==='rtl'?'right':'left'}; margin-bottom: 30px;">`;
-    html += `<tr style="background-color: #f3f4f6;">
-      <th style="padding: 10px;">#</th>
-      <th style="padding: 10px;">${t.name}</th>`;
-    group.fields.forEach(f => { html += `<th style="padding: 10px;">${t[f]}</th>`; });
-    html += `<th style="padding: 10px;">${t.status}</th></tr>`;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration System</title>
     
-    groupParticipants.forEach((p, i) => {
-      html += `<tr>
-        <td style="padding: 8px;">${i + 1}</td>
-        <td style="padding: 8px;"><b>${p.data.name}</b></td>`;
-      group.fields.forEach(f => { html += `<td style="padding: 8px;">${p.data[f] || ''}</td>`; });
-      html += `<td style="padding: 8px; color: ${p.isLeader ? '#d97706' : '#333'};"><b>${p.isLeader ? t.leader : ''}</b></td></tr>`;
-    });
-    html += `</table>`;
-    return html;
-  };
-
-  const executePrint = (htmlContent, title) => {
-    const printWindow = window.open('', '', 'height=800,width=1000');
-    printWindow.document.write(`<html dir="${t.dir}"><head><title>${title}</title>
-      <style>body { font-family: Arial, sans-serif; padding: 40px; color: #333; }</style>
-      </head><body><h1 style="text-align:center">${title}</h1>${htmlContent}</body></html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
-  };
-
-  const executeWordDoc = (htmlContent, title) => {
-    const docHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' dir="${t.dir}">
-      <head><meta charset="utf-8"><title>${title}</title></head>
-      <body style="font-family: Arial, sans-serif;"><h1 style="text-align:center">${title}</h1>${htmlContent}</body></html>`;
-    const blob = new Blob(['\ufeff', docHtml], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${title}.doc`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const exportSinglePdf = (group) => {
-    const gp = participants.filter(p => p.groupId === group.id);
-    executePrint(generateHTMLTable(group, gp), group.name);
-  };
-
-  const exportSingleWord = (group) => {
-    const gp = participants.filter(p => p.groupId === group.id);
-    executeWordDoc(generateHTMLTable(group, gp), group.name);
-  };
-
-  const exportAllPdf = () => {
-    let allHtml = groups.map(g => generateHTMLTable(g, participants.filter(p => p.groupId === g.id))).join('');
-    executePrint(allHtml, t.appTitle + " - All Groups");
-  };
-
-  const exportAllWord = () => {
-    let allHtml = groups.map(g => generateHTMLTable(g, participants.filter(p => p.groupId === g.id))).join('');
-    executeWordDoc(allHtml, "All_Groups");
-  };
-
-
-  // --- UI COMPONENTS ---
-  const Toast = () => toast && (
-    <div className={`fixed bottom-5 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 text-white font-bold flex items-center gap-2 animate-bounce ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
-      {toast.type === 'success' ? <Check size={20} /> : <X size={20} />} {toast.message}
-    </div>
-  );
-
-  const Navbar = () => (
-    <nav className="w-full backdrop-blur-xl bg-white/10 dark:bg-black/20 border-b border-gray-200/20 dark:border-white/10 sticky top-0 z-40 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('dashboard')}>
-          <div className="p-2 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-xl shadow-lg">
-            <Users className="text-white w-6 h-6" />
-          </div>
-          <span className="font-bold text-xl text-gray-800 dark:text-white hidden sm:block">{t.appTitle}</span>
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-4">
-          <button onClick={() => setShowQR(true)} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 font-bold hover:scale-105 transition">
-            <QrCode size={18} /> <span className="hidden sm:inline">{t.qrCode}</span>
-          </button>
-          <button onClick={() => setLang(lang === 'ku' ? 'en' : 'ku')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition text-sm font-bold text-gray-700 dark:text-gray-200">
-            <Globe size={16} /> {lang === 'ku' ? 'EN' : 'کوردی'}
-          </button>
-          <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-lg bg-gray-100/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition text-gray-700 dark:text-gray-200">
-            {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          <button onClick={() => view === 'adminPanel' ? setView('dashboard') : setView('adminLogin')} className="p-2 rounded-lg text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition ml-2 sm:ml-4">
-            {adminLoggedIn && view === 'adminPanel' ? <LogOut size={18} /> : <Shield size={18} />}
-          </button>
-        </div>
-      </div>
-    </nav>
-  );
-
-  const Dashboard = () => (
-    <div className="space-y-8 animate-fade-in">
-      <div className="text-center space-y-4 py-8">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">{t.groups}</h1>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {groups.length === 0 && <div className="col-span-full text-center py-12 text-gray-500 font-bold">{t.noGroups}</div>}
-        {groups.map(group => {
-          const isFull = group.current >= group.max;
-          const progress = (group.current / group.max) * 100;
-          return (
-            <div key={group.id} className="relative overflow-hidden rounded-3xl backdrop-blur-xl bg-white/40 dark:bg-gray-900/40 border border-gray-200 dark:border-white/10 shadow-xl transition hover:-translate-y-2 flex flex-col">
-              <div className={`h-3 w-full bg-gradient-to-r ${group.color}`}></div>
-              <div className="p-6 flex-1 flex flex-col">
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-2xl font-bold text-gray-800 dark:text-white">{group.name}</h3>
-                  <div className={`p-2 rounded-lg bg-gradient-to-br ${group.color} text-white shadow-md`}><Users size={24} /></div>
-                </div>
-                <div className="space-y-4 flex-1">
-                  <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 font-bold">
-                    <span>{t.seatsLeft}: <strong className="text-gray-900 dark:text-white">{group.max - group.current}</strong></span>
-                    <span>{t.maxParticipants}: {group.max}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
-                    <div className={`h-2.5 rounded-full bg-gradient-to-r ${group.color} transition-all`} style={{ width: `${progress}%` }}></div>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => { setSelectedGroup(group); setView('groupDetails'); }}
-                  className={`mt-6 w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-md bg-gradient-to-r ${group.color} text-white hover:opacity-90 active:scale-95`}
-                >
-                  <Users size={20} /> {t.viewParticipants}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  const GroupDetails = () => {
-    const groupParticipants = participants.filter(p => p.groupId === selectedGroup.id);
-    const [editMode, setEditMode] = useState(null);
-    
-    // Dynamic form state
-    const initialFormState = { name: '' };
-    selectedGroup.fields.forEach(f => initialFormState[f] = '');
-    const [formData, setFormData] = useState(initialFormState);
-
-    const handleEditClick = (p) => {
-      setEditMode(p.id);
-      setFormData(p.data);
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    };
-
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      
-      if (editMode) {
-        // Update existing
-        const res = await fetchGAS('updateParticipant', {
-          participantId: editMode,
-          data: formData
-        });
-        if (res && res.status === 'success') {
-          setParticipants(participants.map(p => p.id === editMode ? { ...p, data: formData } : p));
-          setEditMode(null);
-          setFormData(initialFormState);
-          showToast(t.success, 'success');
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
         }
-      } else {
-        // Register new
-        if (selectedGroup.current >= selectedGroup.max) return showToast(t.full, 'error');
-        
-        const isDuplicate = groupParticipants.some(p => 
-          (formData.email && p.data.email === formData.email) || 
-          (formData.phone && p.data.phone === formData.phone)
-        );
-        if (isDuplicate) return showToast(t.duplicate, 'error');
+    </script>
 
-        const newP = {
-          groupId: selectedGroup.id,
-          data: formData
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // ==========================================
+        // CONFIGURATION (Your URLs)
+        // ==========================================
+        const APP_CONFIG = {
+            GITHUB_URL: "https://ranya23.github.io/group-creation/",
+            GAS_URL: "https://script.google.com/macros/s/AKfycbyR_jxXDag-y5SYGpYBIcoS-28h9JMxclJId7Ob-Zre4K4B_NqIIJU9z5KMIwmTx-v7Kw/exec"
         };
 
-        const res = await fetchGAS('register', { participant: newP });
-        if (res && res.status === 'success') {
-          await loadData(); // Reload all to get generated ID and Leader status
-          setFormData(initialFormState);
-          showToast(t.success, 'success');
-        }
-      }
-    };
+        // --- TRANSLATIONS ---
+        const translations = {
+            ku: {
+                dir: 'rtl',
+                appTitle: 'سیستەمی تۆمارکردن',
+                home: 'سەرەتا',
+                groups: 'گرووپەکان',
+                adminPanel: 'بەڕێوەبەرایەتی',
+                join: 'چوونەژوورەوەی گرووپ',
+                full: 'پڕبووە',
+                seatsLeft: 'شوێنی بەتاڵ',
+                maxParticipants: 'زۆرترین بەشداربوو',
+                name: 'ناوی تەواو',
+                email: 'ئیمەیڵ',
+                phone: 'ژمارەی مۆبایل',
+                spec: 'پسپۆڕی',
+                org: 'شوێنی کار / زانکۆ',
+                age: 'تەمەن',
+                register: 'تۆمارکردن',
+                update: 'نوێکردنەوەی زانیاری',
+                cancel: 'گەڕانەوە',
+                adminLogin: 'چوونەژوورەوەی بەڕێوەبەر',
+                password: 'وشەی تێپەڕ (Password)',
+                login: 'چوونەژوورەوە',
+                createGroup: 'دروستکردنی گرووپی نوێ',
+                groupName: 'ناوی گرووپ',
+                color: 'ڕەنگی گرووپ',
+                reqFields: 'زانیارییە داواکراوەکان',
+                delete: 'سڕینەوە',
+                edit: 'دەستکاری',
+                success: 'کردارەکە سەرکەوتووبوو!',
+                error: 'هەڵەیەک ڕوویدا!',
+                duplicate: 'ئەم زانیارییە پێشتر تۆمارکراوە!',
+                leader: 'سەرۆکی گروپ',
+                search: 'گەڕان بەدوای بەشداربووان...',
+                exportPdf: 'دابەزاندن PDF',
+                exportWord: 'دابەزاندن Word',
+                exportAllPdf: 'دابەزاندنی هەمووی PDF',
+                exportAllWord: 'دابەزاندنی هەمووی Word',
+                noGroups: 'هیچ گرووپێک بوونی نییە',
+                status: 'دۆخ',
+                theme: 'دۆخی تاریک/ڕووناک',
+                viewParticipants: 'بینین و تۆمارکردن',
+                addParticipant: 'تۆمارکردنی ناوی نوێ',
+                editParticipant: 'دەستکاریکردنی زانیاری',
+                loading: 'چاوەڕوان بە داتا دەهێنرێت...',
+                qrCode: 'کۆدی QR'
+            },
+            en: {
+                dir: 'ltr',
+                appTitle: 'Registration System',
+                home: 'Home',
+                groups: 'Groups',
+                adminPanel: 'Admin Panel',
+                join: 'Enter Group',
+                full: 'Full',
+                seatsLeft: 'Seats Left',
+                maxParticipants: 'Max Participants',
+                name: 'Full Name',
+                email: 'Email Address',
+                phone: 'Phone Number',
+                spec: 'Specialization',
+                org: 'Organization / University',
+                age: 'Age',
+                register: 'Register Name',
+                update: 'Update Info',
+                cancel: 'Cancel',
+                adminLogin: 'Admin Login',
+                password: 'Password',
+                login: 'Login',
+                createGroup: 'Create New Group',
+                groupName: 'Group Name',
+                color: 'Group Color',
+                reqFields: 'Required Information',
+                delete: 'Delete',
+                edit: 'Edit',
+                success: 'Action Successful!',
+                error: 'An error occurred!',
+                duplicate: 'This information is already registered!',
+                leader: 'Group Leader',
+                search: 'Search participants...',
+                exportPdf: 'Export PDF',
+                exportWord: 'Export Word',
+                exportAllPdf: 'Export All PDF',
+                exportAllWord: 'Export All Word',
+                noGroups: 'No groups available',
+                status: 'Status',
+                theme: 'Dark/Light Mode',
+                viewParticipants: 'View & Register',
+                addParticipant: 'Register New Name',
+                editParticipant: 'Edit Information',
+                loading: 'Loading data...',
+                qrCode: 'QR Code'
+            }
+        };
 
-    return (
-      <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
-        {/* Header & Actions */}
-        <div className="flex flex-wrap gap-4 justify-between items-center bg-white/50 dark:bg-black/50 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-lg">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setView('dashboard')} className="p-2 bg-gray-200 dark:bg-gray-800 rounded-full hover:bg-gray-300 transition">
-              {lang === 'ku' ? <ChevronRight size={20} className="dark:text-white" /> : <ChevronLeft size={20} className="dark:text-white" />}
-            </button>
-            <div>
-              <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{selectedGroup.name}</h2>
-              <p className="text-gray-600 dark:text-gray-400 font-medium">{t.seatsLeft}: {selectedGroup.max - selectedGroup.current}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => exportSinglePdf(selectedGroup)} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow transition">
-              <FileText size={18} /> <span className="hidden sm:inline">{t.exportPdf}</span>
-            </button>
-            <button onClick={() => exportSingleWord(selectedGroup)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow transition">
-              <File size={18} /> <span className="hidden sm:inline">{t.exportWord}</span>
-            </button>
-          </div>
-        </div>
+        const groupColors = [
+            { label: 'Emerald / Teal', value: 'from-emerald-500 to-teal-700' },
+            { label: 'Blue / Indigo', value: 'from-blue-500 to-indigo-700' },
+            { label: 'Amber / Orange', value: 'from-amber-500 to-orange-700' },
+            { label: 'Rose / Pink', value: 'from-rose-500 to-pink-700' },
+            { label: 'Purple / Fuchsia', value: 'from-purple-500 to-fuchsia-700' },
+            { label: 'Cyan / Blue', value: 'from-cyan-400 to-blue-600' },
+            { label: 'Yellow / Red', value: 'from-yellow-400 to-red-600' },
+            { label: 'Slate / Gray', value: 'from-slate-600 to-gray-800' },
+            { label: 'Lime / Green', value: 'from-lime-400 to-green-600' },
+            { label: 'Pink / Rose', value: 'from-pink-400 to-rose-600' },
+            { label: 'Indigo / Purple', value: 'from-indigo-400 to-purple-600' },
+            { label: 'Orange / Red', value: 'from-orange-400 to-red-600' },
+            { label: 'Teal / Emerald', value: 'from-teal-400 to-emerald-600' },
+            { label: 'Fuchsia / Pink', value: 'from-fuchsia-500 to-pink-600' },
+            { label: 'Sky / Indigo', value: 'from-sky-400 to-indigo-600' }
+        ];
 
-        {/* Public Table */}
-        <div className="backdrop-blur-xl bg-white/60 dark:bg-gray-900/60 border border-white/20 p-6 rounded-3xl shadow-xl overflow-x-auto">
-          <table className="w-full text-left text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">
-            <thead className="bg-gray-200/80 dark:bg-gray-800/80">
-              <tr>
-                <th className="p-4 font-bold rounded-tl-lg rounded-bl-lg w-16">#</th>
-                <th className="p-4 font-bold">{t.name}</th>
-                {selectedGroup.fields.map(f => <th key={f} className="p-4 font-bold">{t[f]}</th>)}
-                <th className="p-4 font-bold">{t.status}</th>
-                <th className="p-4 font-bold rounded-tr-lg rounded-br-lg text-center">Edit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groupParticipants.map((p, index) => (
-                <tr key={p.id} className={`border-b border-gray-300/50 dark:border-gray-700/50 transition ${editMode === p.id ? 'bg-indigo-100 dark:bg-indigo-900/40' : 'hover:bg-white/50 dark:hover:bg-black/30'}`}>
-                  <td className="p-4 font-bold">{index + 1}</td>
-                  <td className="p-4 font-extrabold">{p.data.name}</td>
-                  {selectedGroup.fields.map(f => <td key={f} className="p-4">{p.data[f] || '-'}</td>)}
-                  <td className="p-4">
-                    {p.isLeader ? (
-                      <span className="px-3 py-1 bg-amber-200 text-amber-800 font-bold rounded-lg text-xs w-max gap-1">👑 {t.leader}</span>
-                    ) : <span className="px-3 py-1 bg-gray-200 dark:bg-gray-700 font-bold rounded-lg text-xs">بەشداربوو</span>}
-                  </td>
-                  <td className="p-4 text-center">
-                    <button onClick={() => handleEditClick(p)} className="p-2 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition">
-                      <Edit size={18} />
+        const availableFields = ['phone', 'email', 'spec', 'org', 'age'];
+
+        function App() {
+            const [lang, setLang] = useState('ku');
+            const [darkMode, setDarkMode] = useState(true);
+            const [view, setView] = useState('dashboard');
+            const [groups, setGroups] = useState([]);
+            const [participants, setParticipants] = useState([]);
+            const [selectedGroup, setSelectedGroup] = useState(null);
+            const [adminLoggedIn, setAdminLoggedIn] = useState(false);
+            const [toast, setToast] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [showQR, setShowQR] = useState(false);
+
+            const t = translations[lang];
+
+            const fetchGAS = async (action, payload = {}) => {
+                try {
+                    setLoading(true);
+                    const response = await fetch(APP_CONFIG.GAS_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ action, ...payload })
+                    });
+                    const data = await response.json();
+                    setLoading(false);
+                    return data;
+                } catch (err) {
+                    console.error(err);
+                    setLoading(false);
+                    showToast(t.error, 'error');
+                    return null;
+                }
+            };
+
+            const loadData = async () => {
+                const data = await fetchGAS('init');
+                if (data) {
+                    setGroups(data.groups || []);
+                    setParticipants(data.participants || []);
+                }
+            };
+
+            useEffect(() => { loadData(); }, []);
+
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+                setTimeout(() => setToast(null), 3000);
+            };
+
+            // --- EXPORTS ---
+            const generateHTMLTable = (group, groupParticipants) => {
+                let html = `<h2 style="color: #4f46e5; border-bottom: 2px solid #eee; padding-bottom: 10px;">${group.name}</h2>`;
+                html += `<table border="1" style="width: 100%; border-collapse: collapse; text-align: ${t.dir==='rtl'?'right':'left'}; margin-bottom: 30px;">`;
+                html += `<tr style="background-color: #f3f4f6;">
+                <th style="padding: 10px;">#</th>
+                <th style="padding: 10px;">${t.name}</th>`;
+                group.fields.forEach(f => { html += `<th style="padding: 10px;">${t[f]}</th>`; });
+                html += `<th style="padding: 10px;">${t.status}</th></tr>`;
+                
+                groupParticipants.forEach((p, i) => {
+                html += `<tr>
+                    <td style="padding: 8px;">${i + 1}</td>
+                    <td style="padding: 8px;"><b>${p.data.name}</b></td>`;
+                group.fields.forEach(f => { html += `<td style="padding: 8px;">${p.data[f] || ''}</td>`; });
+                html += `<td style="padding: 8px; color: ${p.isLeader ? '#d97706' : '#333'};"><b>${p.isLeader ? t.leader : ''}</b></td></tr>`;
+                });
+                html += `</table>`;
+                return html;
+            };
+
+            const executePrint = (htmlContent, title) => {
+                const printWindow = window.open('', '', 'height=800,width=1000');
+                printWindow.document.write(`<html dir="${t.dir}"><head><title>${title}</title>
+                <style>body { font-family: Arial, sans-serif; padding: 40px; color: #333; }</style>
+                </head><body><h1 style="text-align:center">${title}</h1>${htmlContent}</body></html>`);
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+            };
+
+            const executeWordDoc = (htmlContent, title) => {
+                const docHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' dir="${t.dir}">
+                <head><meta charset="utf-8"><title>${title}</title></head>
+                <body style="font-family: Arial, sans-serif;"><h1 style="text-align:center">${title}</h1>${htmlContent}</body></html>`;
+                const blob = new Blob(['\ufeff', docHtml], { type: 'application/msword' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${title}.doc`;
+                link.click();
+                URL.revokeObjectURL(url);
+            };
+
+            const exportSinglePdf = (group) => executePrint(generateHTMLTable(group, participants.filter(p => p.groupId === group.id)), group.name);
+            const exportSingleWord = (group) => executeWordDoc(generateHTMLTable(group, participants.filter(p => p.groupId === group.id)), group.name);
+            const exportAllPdf = () => executePrint(groups.map(g => generateHTMLTable(g, participants.filter(p => p.groupId === g.id))).join(''), t.appTitle + " - All Groups");
+            const exportAllWord = () => executeWordDoc(groups.map(g => generateHTMLTable(g, participants.filter(p => p.groupId === g.id))).join(''), "All_Groups");
+
+
+            // --- UI COMPONENTS ---
+            const Toast = () => toast && (
+                <div className={`fixed bottom-5 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full shadow-2xl z-50 text-white font-bold flex items-center gap-2 animate-bounce ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+                    <i className={`fas ${toast.type === 'success' ? 'fa-check' : 'fa-times'}`}></i> {toast.message}
+                </div>
+            );
+
+            const Navbar = () => (
+                <nav className="w-full backdrop-blur-xl bg-white/10 dark:bg-black/20 border-b border-gray-200/20 dark:border-white/10 sticky top-0 z-40 transition-colors duration-300">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
+                    <div className="flex items-center gap-3 cursor-pointer" onClick={() => setView('dashboard')}>
+                    <div className="p-2 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-xl shadow-lg flex items-center justify-center w-10 h-10">
+                        <i className="fas fa-users text-white text-lg"></i>
+                    </div>
+                    <span className="font-bold text-xl text-gray-800 dark:text-white hidden sm:block">{t.appTitle}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:gap-4">
+                    <button onClick={() => setShowQR(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 font-bold hover:scale-105 transition">
+                        <i className="fas fa-qrcode"></i> <span className="hidden sm:inline">{t.qrCode}</span>
                     </button>
-                  </td>
-                </tr>
-              ))}
-              {groupParticipants.length === 0 && (<tr><td colSpan="10" className="p-8 text-center text-gray-500 font-bold">No participants found. Be the first!</td></tr>)}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Public Add/Edit Form */}
-        <div className={`backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 p-8 rounded-3xl shadow-xl transition-all ${editMode ? 'ring-4 ring-indigo-500' : ''}`}>
-          <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
-            {editMode ? <Edit className="text-indigo-500"/> : <UserPlus className="text-green-500"/>}
-            {editMode ? t.editParticipant : t.addParticipant}
-          </h3>
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{t.name}</label>
-              <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-black/50 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white font-medium" />
-            </div>
-            {selectedGroup.fields.map(field => (
-              <div key={field}>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{t[field]}</label>
-                <input required type={field === 'email' ? 'email' : field === 'age' ? 'number' : 'text'} value={formData[field]} onChange={e => setFormData({...formData, [field]: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-black/50 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white font-medium" />
-              </div>
-            ))}
-            <div className="md:col-span-2 flex gap-3 mt-4">
-              <button type="submit" disabled={!editMode && selectedGroup.current >= selectedGroup.max} className="flex-1 py-3.5 rounded-xl font-extrabold text-white shadow-lg transition-all active:scale-95 bg-gradient-to-r from-indigo-600 to-purple-600 disabled:opacity-50">
-                {editMode ? t.update : t.register}
-              </button>
-              {editMode && (
-                <button type="button" onClick={() => {setEditMode(null); setFormData(initialFormState);}} className="px-6 py-3.5 rounded-xl font-bold bg-gray-300 text-gray-800 hover:bg-gray-400 transition">
-                  {t.cancel}
-                </button>
-              )}
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
-  const AdminLogin = () => {
-    const [pwd, setPwd] = useState('');
-    const handleLogin = (e) => {
-      e.preventDefault();
-      if (pwd === 'Admin123') { setAdminLoggedIn(true); setView('adminPanel'); showToast(t.success); } 
-      else showToast(t.error, 'error');
-    };
-    return (
-      <div className="max-w-sm mx-auto mt-20 animate-fade-in backdrop-blur-xl bg-white/50 dark:bg-black/50 border border-white/20 p-8 rounded-3xl shadow-2xl text-center">
-        <Lock className="text-indigo-600 w-12 h-12 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold dark:text-white mb-6">{t.adminLogin}</h2>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <input required type="password" placeholder={t.password} value={pwd} onChange={e => setPwd(e.target.value)} className="w-full px-4 py-3 text-center rounded-xl bg-white dark:bg-black/50 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white" />
-          <button type="submit" className="w-full py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition">{t.login}</button>
-        </form>
-      </div>
-    );
-  };
-
-  const AdminPanel = () => {
-    const [newGroup, setNewGroup] = useState({ name: '', color: groupColors[0].value, max: 10, fields: [] });
-
-    const toggleField = (field) => {
-      setNewGroup(prev => ({
-        ...prev, fields: prev.fields.includes(field) ? prev.fields.filter(f => f !== field) : [...prev.fields, field]
-      }));
-    };
-
-    const handleCreateGroup = async (e) => {
-      e.preventDefault();
-      const res = await fetchGAS('createGroup', { password: 'Admin123', group: newGroup });
-      if (res && res.status === 'success') {
-        await loadData();
-        setNewGroup({ name: '', color: groupColors[0].value, max: 10, fields: [] });
-        showToast(t.success);
-      }
-    };
-
-    const handleDeleteGroup = async (id) => {
-      if(confirm('Are you sure you want to delete this group?')) {
-        const res = await fetchGAS('deleteGroup', { password: 'Admin123', groupId: id });
-        if (res && res.status === 'success') { await loadData(); showToast(t.success); }
-      }
-    };
-
-    return (
-      <div className="space-y-8 animate-fade-in max-w-6xl mx-auto">
-        <div className="flex flex-wrap justify-between items-center bg-white/50 dark:bg-black/50 p-6 rounded-3xl shadow-lg gap-4">
-          <h2 className="text-3xl font-bold dark:text-white flex items-center gap-3"><LayoutDashboard /> {t.adminPanel}</h2>
-          <div className="flex gap-3">
-            <button onClick={exportAllPdf} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-bold rounded-xl shadow hover:bg-red-700"><FileText size={18}/> {t.exportAllPdf}</button>
-            <button onClick={exportAllWord} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-xl shadow hover:bg-blue-700"><File size={18}/> {t.exportAllWord}</button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Create Form */}
-          <div className="bg-white/60 dark:bg-gray-900/60 p-6 rounded-3xl shadow-xl h-fit border border-white/10">
-            <h3 className="text-xl font-bold dark:text-white mb-6">{t.createGroup}</h3>
-            <form onSubmit={handleCreateGroup} className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-600 dark:text-gray-400 mb-1">{t.groupName}</label>
-                <input required value={newGroup.name} onChange={e=>setNewGroup({...newGroup, name:e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-gray-700 outline-none dark:text-white" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-600 dark:text-gray-400 mb-1">{t.maxParticipants}</label>
-                <input required type="number" min="1" value={newGroup.max} onChange={e=>setNewGroup({...newGroup, max: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-gray-700 outline-none dark:text-white" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-600 dark:text-gray-400 mb-1">{t.color}</label>
-                <select value={newGroup.color} onChange={e=>setNewGroup({...newGroup, color:e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-gray-700 outline-none dark:text-white">
-                  {groupColors.map((c, i) => <option key={i} value={c.value}>{c.label}</option>)}
-                </select>
-              </div>
-              <div className="p-4 bg-white/50 dark:bg-black/30 rounded-xl border border-gray-200 dark:border-gray-700">
-                <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-3">{t.reqFields}</label>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 opacity-70">
-                    <input type="checkbox" checked disabled className="rounded text-indigo-600" /> {t.name} (Required)
-                  </label>
-                  {availableFields.map(field => (
-                    <label key={field} className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
-                      <input type="checkbox" checked={newGroup.fields.includes(field)} onChange={() => toggleField(field)} className="rounded text-indigo-600 w-4 h-4 cursor-pointer" /> {t[field]}
-                    </label>
-                  ))}
+                    <button onClick={() => setLang(lang === 'ku' ? 'en' : 'ku')} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition text-sm font-bold text-gray-700 dark:text-gray-200">
+                        <i className="fas fa-globe"></i> {lang === 'ku' ? 'EN' : 'کوردی'}
+                    </button>
+                    <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-lg bg-gray-100/50 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition text-gray-700 dark:text-gray-200">
+                        <i className={`fas ${darkMode ? 'fa-sun' : 'fa-moon'}`}></i>
+                    </button>
+                    <button onClick={() => view === 'adminPanel' ? setView('dashboard') : setView('adminLogin')} className="p-2 rounded-lg text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition ml-2 sm:ml-4">
+                        <i className={`fas ${adminLoggedIn && view === 'adminPanel' ? 'fa-sign-out-alt' : 'fa-shield-alt'}`}></i>
+                    </button>
+                    </div>
                 </div>
-              </div>
-              <button type="submit" className="w-full py-3.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md flex justify-center gap-2 mt-4"><Plus /> {t.createGroup}</button>
-            </form>
-          </div>
+                </nav>
+            );
 
-          {/* List */}
-          <div className="lg:col-span-2 space-y-4">
-            {groups.map(group => (
-              <div key={group.id} className="bg-white/70 dark:bg-gray-900/70 p-5 rounded-2xl flex justify-between items-center shadow-md hover:shadow-lg transition border border-white/10">
-                <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${group.color} flex items-center justify-center text-white font-bold text-lg shadow-md`}>
-                    {group.current}/{group.max}
-                  </div>
-                  <div>
-                    <h4 className="font-bold dark:text-white text-lg">{group.name}</h4>
-                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-1">Fields: {group.fields.length === 0 ? 'Name Only' : `Name, ${group.fields.join(', ')}`}</p>
-                  </div>
+            const Dashboard = () => (
+                <div className="space-y-8 animate-fade-in">
+                <div className="text-center space-y-4 py-8">
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">{t.groups}</h1>
                 </div>
-                <button onClick={() => handleDeleteGroup(group.id)} className="p-3 text-white bg-red-500 hover:bg-red-600 rounded-xl shadow transition"><Trash2 size={20} /></button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {groups.length === 0 && <div className="col-span-full text-center py-12 text-gray-500 font-bold">{t.noGroups}</div>}
+                    {groups.map(group => {
+                    const isFull = group.current >= group.max;
+                    const progress = (group.current / group.max) * 100;
+                    return (
+                        <div key={group.id} className="relative overflow-hidden rounded-3xl backdrop-blur-xl bg-white/40 dark:bg-gray-900/40 border border-gray-200 dark:border-white/10 shadow-xl transition hover:-translate-y-2 flex flex-col">
+                        <div className={`h-3 w-full bg-gradient-to-r ${group.color}`}></div>
+                        <div className="p-6 flex-1 flex flex-col">
+                            <div className="flex justify-between items-start mb-4">
+                            <h3 className="text-2xl font-bold text-gray-800 dark:text-white">{group.name}</h3>
+                            <div className={`p-3 rounded-lg bg-gradient-to-br ${group.color} text-white shadow-md flex items-center justify-center`}><i className="fas fa-users text-xl"></i></div>
+                            </div>
+                            <div className="space-y-4 flex-1">
+                            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400 font-bold">
+                                <span>{t.seatsLeft}: <strong className="text-gray-900 dark:text-white">{group.max - group.current}</strong></span>
+                                <span>{t.maxParticipants}: {group.max}</span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                                <div className={`h-2.5 rounded-full bg-gradient-to-r ${group.color} transition-all`} style={{ width: `${progress}%` }}></div>
+                            </div>
+                            </div>
+                            <button 
+                            onClick={() => { setSelectedGroup(group); setView('groupDetails'); }}
+                            className={`mt-6 w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition shadow-md bg-gradient-to-r ${group.color} text-white hover:opacity-90 active:scale-95`}
+                            >
+                            <i className="fas fa-users"></i> {t.viewParticipants}
+                            </button>
+                        </div>
+                        </div>
+                    );
+                    })}
+                </div>
+                </div>
+            );
 
-  // --- RENDER ---
-  return (
-    <div className={`min-h-screen transition-colors duration-500 font-sans ${darkMode ? 'dark' : ''}`} dir={t.dir}>
-      <div className="min-h-screen bg-[#f3f4f6] dark:bg-[#0f172a] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] dark:bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]">
-        <Navbar />
-        {loading && <div className="fixed top-0 left-0 w-full h-1 bg-indigo-500 animate-pulse z-50"></div>}
-        
-        {/* QR Code Modal */}
-        {showQR && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowQR(false)}>
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm w-full text-center" onClick={e => e.stopPropagation()}>
-              <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">{t.qrCode}</h3>
-              <div className="bg-white p-4 rounded-xl shadow-inner border-2 border-gray-100">
-                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(APP_CONFIG.GITHUB_URL)}`} alt="QR Code" className="w-48 h-48" />
-              </div>
-              <p className="mt-4 text-sm font-bold text-gray-500 dark:text-gray-400">Scan to open on mobile</p>
-              <button onClick={() => setShowQR(false)} className="mt-6 w-full py-3 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-white rounded-xl font-bold hover:bg-gray-300 transition">{t.cancel}</button>
-            </div>
-          </div>
-        )}
+            const GroupDetails = () => {
+                const groupParticipants = participants.filter(p => p.groupId === selectedGroup.id);
+                const [editMode, setEditMode] = useState(null);
+                
+                const initialFormState = { name: '' };
+                selectedGroup.fields.forEach(f => initialFormState[f] = '');
+                const [formData, setFormData] = useState(initialFormState);
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {view === 'dashboard' && <Dashboard />}
-          {view === 'groupDetails' && selectedGroup && <GroupDetails />}
-          {view === 'adminLogin' && <AdminLogin />}
-          {view === 'adminPanel' && adminLoggedIn && <AdminPanel />}
-        </main>
-        <Toast />
-      </div>
-    </div>
-  );
-}
+                const handleEditClick = (p) => {
+                setEditMode(p.id);
+                setFormData(p.data);
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                };
+
+                const handleSubmit = async (e) => {
+                e.preventDefault();
+                
+                if (editMode) {
+                    const res = await fetchGAS('updateParticipant', { participantId: editMode, data: formData });
+                    if (res && res.status === 'success') {
+                    setParticipants(participants.map(p => p.id === editMode ? { ...p, data: formData } : p));
+                    setEditMode(null); setFormData(initialFormState); showToast(t.success, 'success');
+                    }
+                } else {
+                    if (selectedGroup.current >= selectedGroup.max) return showToast(t.full, 'error');
+                    const isDuplicate = groupParticipants.some(p => (formData.email && p.data.email === formData.email) || (formData.phone && p.data.phone === formData.phone));
+                    if (isDuplicate) return showToast(t.duplicate, 'error');
+
+                    const res = await fetchGAS('register', { participant: { groupId: selectedGroup.id, data: formData } });
+                    if (res && res.status === 'success') { await loadData(); setFormData(initialFormState); showToast(t.success, 'success'); }
+                }
+                };
+
+                return (
+                <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
+                    <div className="flex flex-wrap gap-4 justify-between items-center bg-white/50 dark:bg-black/50 backdrop-blur-md p-6 rounded-3xl border border-white/20 shadow-lg">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setView('dashboard')} className="p-3 bg-gray-200 dark:bg-gray-800 rounded-full hover:bg-gray-300 transition text-gray-800 dark:text-white">
+                        <i className={`fas ${lang === 'ku' ? 'fa-chevron-right' : 'fa-chevron-left'}`}></i>
+                        </button>
+                        <div>
+                        <h2 className="text-3xl font-bold text-gray-800 dark:text-white">{selectedGroup.name}</h2>
+                        <p className="text-gray-600 dark:text-gray-400 font-medium">{t.seatsLeft}: {selectedGroup.max - selectedGroup.current}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => exportSinglePdf(selectedGroup)} className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold shadow transition">
+                        <i className="fas fa-file-pdf"></i> <span className="hidden sm:inline">{t.exportPdf}</span>
+                        </button>
+                        <button onClick={() => exportSingleWord(selectedGroup)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow transition">
+                        <i className="fas fa-file-word"></i> <span className="hidden sm:inline">{t.exportWord}</span>
+                        </button>
+                    </div>
+                    </div>
+
+                    <div className="backdrop-blur-xl bg-white/60 dark:bg-gray-900/60 border border-white/20 p-6 rounded-3xl shadow-xl overflow-x-auto">
+                    <table className="w-full text-left text-sm text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                        <thead className="bg-gray-200/80 dark:bg-gray-800/80">
+                        <tr>
+                            <th className="p-4 font-bold rounded-tl-lg rounded-bl-lg w-16">#</th>
+                            <th className="p-4 font-bold">{t.name}</th>
+                            {selectedGroup.fields.map(f => <th key={f} className="p-4 font-bold">{t[f]}</th>)}
+                            <th className="p-4 font-bold">{t.status}</th>
+                            <th className="p-4 font-bold rounded-tr-lg rounded-br-lg text-center">Edit</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {groupParticipants.map((p, index) => (
+                            <tr key={p.id} className={`border-b border-gray-300/50 dark:border-gray-700/50 transition ${editMode === p.id ? 'bg-indigo-100 dark:bg-indigo-900/40' : 'hover:bg-white/50 dark:hover:bg-black/30'}`}>
+                            <td className="p-4 font-bold">{index + 1}</td>
+                            <td className="p-4 font-extrabold">{p.data.name}</td>
+                            {selectedGroup.fields.map(f => <td key={f} className="p-4">{p.data[f] || '-'}</td>)}
+                            <td className="p-4">
+                                {p.isLeader ? (
+                                <span className="px-3 py-1 bg-amber-200 text-amber-800 font-bold rounded-lg text-xs w-max gap-1">👑 {t.leader}</span>
+                                ) : <span className="px-3 py-1 bg-gray-200 dark:bg-gray-700 font-bold rounded-lg text-xs">بەشداربوو</span>}
+                            </td>
+                            <td className="p-4 text-center">
+                                <button onClick={() => handleEditClick(p)} className="p-2 text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition">
+                                <i className="fas fa-edit"></i>
+                                </button>
+                            </td>
+                            </tr>
+                        ))}
+                        {groupParticipants.length === 0 && (<tr><td colSpan="10" className="p-8 text-center text-gray-500 font-bold">No participants found. Be the first!</td></tr>)}
+                        </tbody>
+                    </table>
+                    </div>
+
+                    <div className={`backdrop-blur-xl bg-white/70 dark:bg-gray-900/70 border border-white/20 p-8 rounded-3xl shadow-xl transition-all ${editMode ? 'ring-4 ring-indigo-500' : ''}`}>
+                    <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
+                        <i className={`fas ${editMode ? 'fa-edit text-indigo-500' : 'fa-user-plus text-green-500'}`}></i>
+                        {editMode ? t.editParticipant : t.addParticipant}
+                    </h3>
+                    <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="md:col-span-2">
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{t.name}</label>
+                        <input required type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-black/50 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white font-medium" />
+                        </div>
+                        {selectedGroup.fields.map(field => (
+                        <div key={field}>
+                            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{t[field]}</label>
+                            <input required type={field === 'email' ? 'email' : field === 'age' ? 'number' : 'text'} value={formData[field]} onChange={e => setFormData({...formData, [field]: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-black/50 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none text-gray-900 dark:text-white font-medium" />
+                        </div>
+                        ))}
+                        <div className="md:col-span-2 flex gap-3 mt-4">
+                        <button type="submit" disabled={!editMode && selectedGroup.current >= selectedGroup.max} className="flex-1 py-3.5 rounded-xl font-extrabold text-white shadow-lg transition-all active:scale-95 bg-gradient-to-r from-indigo-600 to-purple-600 disabled:opacity-50">
+                            {editMode ? t.update : t.register}
+                        </button>
+                        {editMode && (
+                            <button type="button" onClick={() => {setEditMode(null); setFormData(initialFormState);}} className="px-6 py-3.5 rounded-xl font-bold bg-gray-300 text-gray-800 hover:bg-gray-400 transition">
+                            {t.cancel}
+                            </button>
+                        )}
+                        </div>
+                    </form>
+                    </div>
+                </div>
+                );
+            };
+
+            const AdminLogin = () => {
+                const [pwd, setPwd] = useState('');
+                const handleLogin = (e) => {
+                e.preventDefault();
+                if (pwd === 'Admin123') { setAdminLoggedIn(true); setView('adminPanel'); showToast(t.success); } 
+                else showToast(t.error, 'error');
+                };
+                return (
+                <div className="max-w-sm mx-auto mt-20 animate-fade-in backdrop-blur-xl bg-white/50 dark:bg-black/50 border border-white/20 p-8 rounded-3xl shadow-2xl text-center">
+                    <i className="fas fa-lock text-indigo-600 text-5xl mb-4"></i>
+                    <h2 className="text-2xl font-bold dark:text-white mb-6">{t.adminLogin}</h2>
+                    <form onSubmit={handleLogin} className="space-y-4">
+                    <input required type="password" placeholder={t.password} value={pwd} onChange={e => setPwd(e.target.value)} className="w-full px-4 py-3 text-center rounded-xl bg-white dark:bg-black/50 border border-gray-300 dark:border-gray-700 outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white" />
+                    <button type="submit" className="w-full py-3 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition">{t.login}</button>
+                    </form>
+                </div>
+                );
+            };
+
+            const AdminPanel = () => {
+                const [newGroup, setNewGroup] = useState({ name: '', color: groupColors[0].value, max: 10, fields: [] });
+                const toggleField = (field) => setNewGroup(prev => ({ ...prev, fields: prev.fields.includes(field) ? prev.fields.filter(f => f !== field) : [...prev.fields, field] }));
+
+                const handleCreateGroup = async (e) => {
+                e.preventDefault();
+                const res = await fetchGAS('createGroup', { password: 'Admin123', group: newGroup });
+                if (res && res.status === 'success') { await loadData(); setNewGroup({ name: '', color: groupColors[0].value, max: 10, fields: [] }); showToast(t.success); }
+                };
+
+                const handleDeleteGroup = async (id) => {
+                if(confirm('Are you sure you want to delete this group?')) {
+                    const res = await fetchGAS('deleteGroup', { password: 'Admin123', groupId: id });
+                    if (res && res.status === 'success') { await loadData(); showToast(t.success); }
+                }
+                };
+
+                return (
+                <div className="space-y-8 animate-fade-in max-w-6xl mx-auto">
+                    <div className="flex flex-wrap justify-between items-center bg-white/50 dark:bg-black/50 p-6 rounded-3xl shadow-lg gap-4">
+                    <h2 className="text-3xl font-bold dark:text-white flex items-center gap-3"><i className="fas fa-columns"></i> {t.adminPanel}</h2>
+                    <div className="flex gap-3">
+                        <button onClick={exportAllPdf} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-bold rounded-xl shadow hover:bg-red-700"><i className="fas fa-file-pdf"></i> {t.exportAllPdf}</button>
+                        <button onClick={exportAllWord} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-xl shadow hover:bg-blue-700"><i className="fas fa-file-word"></i> {t.exportAllWord}</button>
+                    </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="bg-white/60 dark:bg-gray-900/60 p-6 rounded-3xl shadow-xl h-fit border border-white/10">
+                        <h3 className="text-xl font-bold dark:text-white mb-6">{t.createGroup}</h3>
+                        <form onSubmit={handleCreateGroup} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-bold text-gray-600 dark:text-gray-400 mb-1">{t.groupName}</label>
+                            <input required value={newGroup.name} onChange={e=>setNewGroup({...newGroup, name:e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-gray-700 outline-none dark:text-white" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-600 dark:text-gray-400 mb-1">{t.maxParticipants}</label>
+                            <input required type="number" min="1" value={newGroup.max} onChange={e=>setNewGroup({...newGroup, max: Number(e.target.value)})} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-gray-700 outline-none dark:text-white" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-gray-600 dark:text-gray-400 mb-1">{t.color}</label>
+                            <select value={newGroup.color} onChange={e=>setNewGroup({...newGroup, color:e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white dark:bg-black/40 border border-gray-300 dark:border-gray-700 outline-none dark:text-white">
+                            {groupColors.map((c, i) => <option key={i} value={c.value}>{c.label}</option>)}
+                            </select>
+                        </div>
+                        <div className="p-4 bg-white/50 dark:bg-black/30 rounded-xl border border-gray-200 dark:border-gray-700">
+                            <label className="block text-sm font-bold text-gray-800 dark:text-gray-200 mb-3">{t.reqFields}</label>
+                            <div className="space-y-2">
+                            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 opacity-70"><input type="checkbox" checked disabled className="rounded" /> {t.name} (Required)</label>
+                            {availableFields.map(field => (
+                                <label key={field} className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300 cursor-pointer">
+                                <input type="checkbox" checked={newGroup.fields.includes(field)} onChange={() => toggleField(field)} className="rounded cursor-pointer" /> {t[field]}
+                                </label>
+                            ))}
+                            </div>
+                        </div>
+                        <button type="submit" className="w-full py-3.5 rounded-xl font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md flex justify-center gap-2 mt-4"><i className="fas fa-plus mt-1"></i> {t.createGroup}</button>
+                        </form>
+                    </div>
+
+                    <div className="lg:col-span-2 space-y-4">
+                        {groups.map(group => (
+                        <div key={group.id} className="bg-white/70 dark:bg-gray-900/70 p-5 rounded-2xl flex justify-between items-center shadow-md hover:shadow-lg transition border border-white/10">
+                            <div className="flex items-center gap-4">
+                            <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${group.color} flex items-center justify-center text-white font-bold text-lg shadow-md`}>{group.current}/{group.max}</div>
+                            <div>
+                                <h4 className="font-bold dark:text-white text-lg">{group.name}</h4>
+                                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-1">Fields: {group.fields.length === 0 ? 'Name Only' : `Name, ${group.fields.join(', ')}`}</p>
+                            </div>
+                            </div>
+                            <button onClick={() => handleDeleteGroup(group.id)} className="p-3 text-white bg-red-500 hover:bg-red-600 rounded-xl shadow transition"><i className="fas fa-trash"></i></button>
+                        </div>
+                        ))}
+                    </div>
+                    </div>
+                </div>
+                );
+            };
+
+            return (
+                <div className={`min-h-screen transition-colors duration-500 font-sans ${darkMode ? 'dark' : ''}`} dir={t.dir}>
+                <div className="min-h-screen bg-[#f3f4f6] dark:bg-[#0f172a] bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] dark:bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]">
+                    <Navbar />
+                    {loading && <div className="fixed top-0 left-0 w-full h-1 bg-indigo-500 animate-pulse z-50"></div>}
+                    
+                    {showQR && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowQR(false)}>
+                        <div className="bg-white dark:bg-gray-900 p-8 rounded-3xl shadow-2xl flex flex-col items-center max-w-sm w-full text-center" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-6">{t.qrCode}</h3>
+                        <div className="bg-white p-4 rounded-xl shadow-inner border-2 border-gray-100">
+                            <img src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(APP_CONFIG.GITHUB_URL)}`} alt="QR Code" className="w-48 h-48" />
+                        </div>
+                        <p className="mt-4 text-sm font-bold text-gray-500 dark:text-gray-400">Scan to open on mobile</p>
+                        <button onClick={() => setShowQR(false)} className="mt-6 w-full py-3 bg-gray-200 dark:bg-gray-800 text-gray-800 dark:text-white rounded-xl font-bold hover:bg-gray-300 transition">{t.cancel}</button>
+                        </div>
+                    </div>
+                    )}
+
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    {view === 'dashboard' && <Dashboard />}
+                    {view === 'groupDetails' && selectedGroup && <GroupDetails />}
+                    {view === 'adminLogin' && <AdminLogin />}
+                    {view === 'adminPanel' && adminLoggedIn && <AdminPanel />}
+                    </main>
+                    <Toast />
+                </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
