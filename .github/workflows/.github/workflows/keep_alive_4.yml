@@ -1,0 +1,19 @@
+name: Keep Supabase 4 Alive
+
+on:
+  schedule:
+    # Runs at 00:00 every day
+    - cron: '0 0 * * *'
+  # Allows you to trigger the workflow manually
+  workflow_dispatch: 
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase API 4
+        run: |
+          curl -X GET "${{ secrets.SUPABASE_URL_4 }}/rest/v1/" \
+          -H "apikey: ${{ secrets.SUPABASE_KEY_4 }}" \
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_KEY_4 }}"
+          
